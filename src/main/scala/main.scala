@@ -7,5 +7,5 @@ import y2022_1.y2022_1
 def main(): Unit = {
   println("Hello world!")
   println(Day1.part1())
-  //println(Day1.part2())
+  println(Day1.part2())
 }
