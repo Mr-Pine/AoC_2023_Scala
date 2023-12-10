@@ -11,18 +11,57 @@ object Day10 extends Day[Array[Array[Char]]] {
     fun
   }
 
-  override def part1(example: Boolean): String = DFSFromTo(start = 'S', end = 'S', init(example)).toString
+  override def part1(example: Boolean): String = (DFSFromTo(start = 'S', end = 'S', init(example)).length / 2).toString
 
-  override def part2(example: Boolean): String = "Hi"
+  override def part2(example: Boolean): String = {
 
-  private def DFSFromTo(start: Char, end: Char, graph: Array[Array[Char]]): Int = {
+
+    val board = init(example)
+    val loop = DFSFromTo('S', 'S', board)/*.toSet*/.map(_.position)
+    var insideCount = 0
+    for (y <- Range(0, board.length)) {
+      var inside = false
+      var inLoop = 0
+      for (x <- Range(0, board(y).length)) {
+        if (loop.contains(Coordinates(x,y))) {
+          var char = board(y)(x)
+          if (char == 'S') then char = sReplacement
+
+          char match
+            case 'F' => inLoop = -1
+            case 'L' => inLoop = 1
+            case '7' => if inLoop == 1 then inside = !inside
+            case 'J' => if inLoop == -1 then inside = !inside
+            case '|' => inside = !inside
+            case _ => {}
+        } else if (inside) {
+          insideCount += 1
+          inLoop = 0
+        }
+      }
+    }
+
+    def sReplacement: Char = {
+      val sCoord = loop.head
+      val neighbours = Set(loop(1), loop.last)
+      val chars = "7LFJ-|"
+      val replacement = chars.find(char => {
+        Node(sCoord, char, null).nextPositions.toSet == neighbours
+      })
+      replacement.get
+    }
+
+    insideCount.toString
+  }
+
+  private def DFSFromTo(start: Char, end: Char, graph: Array[Array[Char]]): List[Node] = {
     val startY = graph.indexWhere(_.contains(start))
     val startX = graph(startY).indexOf(start)
     val startPosition = Coordinates(startX, startY)
     val startNode = Node(startPosition, start, null)
 
     val nodeQueue = mutable.Queue[Node | LayerSeparator.type](startNode, LayerSeparator)
-    val reached = ListBuffer[Node](startNode)
+    val reached = mutable.Set[Node](startNode)
     var depth = 0;
 
     boundary {
@@ -39,15 +78,18 @@ object Day10 extends Day[Array[Array[Char]]] {
               if (neighbour.nextPositions.contains(position)) {
 
                 if (!reached.contains(neighbour)) {
-                  reached.append(neighbour)
+                  reached.add(neighbour)
                   nodeQueue.enqueue(neighbour)
                 } else if (neighbour != parent && parent != null) {
-                  boundary.break(depth + 1)
+                  val myChain = next.asInstanceOf[Node].parentChain.dropRight(1).result()
+                  val reachedNeighbour = reached.find(_ == neighbour)
+                  val neighbourChain = reachedNeighbour.get.parentChain.reverse
+                  boundary.break(neighbourChain.prependToList(myChain))
                 }
               }
             }
       }
-      -1
+      List[Node]()
     }
   }
 }
@@ -66,6 +108,19 @@ private case class Node(nextPositions: Array[Coordinates], kind: Char, position:
   override def equals(obj: Any): Boolean = obj match {
     case Node(_, _, otherPos, _) => otherPos == position
     case _ => false
+  }
+
+  override def hashCode(): Int = position.hashCode()
+
+  def parentChain: ListBuffer[Node] = {
+    val path = ListBuffer[Node]()
+    var node = this
+    while (node != null) {
+      path.append(node)
+      node = node.parent
+    }
+
+    path
   }
 }
 
