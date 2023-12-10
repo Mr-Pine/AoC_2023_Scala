@@ -1,10 +1,10 @@
 package de.mr_pine.aoc.y2023
 
-import day2.Day2
+import day10.Day10
 
 @main
 def main(): Unit = {
   println("Happy advent!")
-  println(Day2.part1())
-  println(Day2.part2())
+  println(Day10.part1())
+  println(Day10.part2())
 }
